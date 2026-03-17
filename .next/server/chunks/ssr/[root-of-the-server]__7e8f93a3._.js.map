@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 3, "column": 0}, "map": {"version":3,"sources":[],"names":[],"mappings":"","debugId":null}},
+    {"offset": {"line": 69, "column": 0}, "map": {"version":3,"sources":["file:///Users/kaashvi/Documents/Ritika/clara/src/app/page.tsx"],"sourcesContent":["import Groq from \"groq-sdk\";\nconst groq = new Groq({ apiKey: process.env.GROQ_API_KEY });\n\nexport default async function Home() {\n  const completion = await groq.chat.completions\n    .create({\n      messages: [\n        {\n          role: \"system\",\n          content:\n            \"You are a Clara, smart personal assistant. Be polite, always\",\n        },\n        {\n          role: \"user\",\n          content: \"Who are you?\",\n        },\n      ],\n      model: \"llama-3.3-70b-versatile\",\n    })\n    .then((chatCompletion) => {\n      console.log(chatCompletion.choices[0]?.message?.content || \"\");\n    });\n  return <div>Hey I am Clara!</div>;\n}\n"],"names":[],"mappings":";;;;;AAAA;;;AACA,MAAM,OAAO,IAAI,gKAAI,CAAC;IAAE,QAAQ,QAAQ,GAAG,CAAC,YAAY;AAAC;AAE1C,eAAe;IAC5B,MAAM,aAAa,MAAM,KAAK,IAAI,CAAC,WAAW,CAC3C,MAAM,CAAC;QACN,UAAU;YACR;gBACE,MAAM;gBACN,SACE;YACJ;YACA;gBACE,MAAM;gBACN,SAAS;YACX;SACD;QACD,OAAO;IACT,GACC,IAAI,CAAC,CAAC;QACL,QAAQ,GAAG,CAAC,eAAe,OAAO,CAAC,EAAE,EAAE,SAAS,WAAW;IAC7D;IACF,qBAAO,8OAAC;kBAAI;;;;;;AACd","debugId":null}}]
+}
