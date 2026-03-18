@@ -82,12 +82,44 @@ UI runs on `http://localhost:3000`
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/health` | Health check |
-| POST | `/api/chat` | Send chat message |
+| POST | `/api/chat` | Send chat message with thread context |
+| GET | `/api/cache-stats` | View active conversation threads and cache stats |
 
 **POST /api/chat**
 ```json
 {
-  "prompt": "What is the latest news about AI?"
+  "prompt": "What is the latest news about AI?",
+  "threadId": "uuid-optional-for-context"
+}
+```
+
+**Response**
+```json
+{
+  "success": true,
+  "text": "The latest AI news includes...",
+  "threadId": "uuid-for-maintaining-context"
+}
+```
+
+**GET /api/cache-stats** - View all cached conversations
+```json
+{
+  "success": true,
+  "cache": {
+    "totalThreads": 1,
+    "threads": {
+      "thread-uuid": {
+        "messageCount": 5,
+        "messages": [
+          { "role": "user", "content": "Hello" },
+          { "role": "assistant", "content": "Hi there!" }
+        ],
+        "createdAt": "2026-03-18T10:30:00.000Z",
+        "lastUpdated": "2026-03-18T10:35:00.000Z"
+      }
+    }
+  }
 }
 ```
 
@@ -96,7 +128,8 @@ UI runs on `http://localhost:3000`
 - **Config**: Environment and application configuration
 - **Controllers**: HTTP request handlers
 - **Services**: 
-  - `chatService.js`: LLM chat with agentic loop
+  - `chatService.js`: LLM chat with agentic loop and thread context
+  - `cacheService.js`: Conversation memory with 30-minute TTL
   - `groqService.js`: Groq client management
   - `searchService.js`: Web search wrapper
 - **Routes**: API route definitions
@@ -109,6 +142,8 @@ UI runs on `http://localhost:3000`
 - ⌨️ Keyboard shortcuts (Enter to send, Shift+Enter for newline)
 - 📱 Responsive design
 - 🔄 Auto-scroll to latest messages
+- 🧠 **Conversation Memory** - Maintains chat context for 30 minutes per thread
+- 📋 Copy button on assistant responses
 
 ## 🔧 Technologies
 
@@ -118,11 +153,14 @@ UI runs on `http://localhost:3000`
 - TypeScript
 - Tailwind CSS
 - Turbopack
+- uuid (for thread ID generation)
 
 **Backend**
 - Express.js
 - Groq SDK (LLM)
 - Tavily API (Search)
+- node-cache (Conversation memory)
+- uuid (Thread ID generation)
 - Node.js with ES modules
 
 ## 📝 Environment Variables
@@ -139,17 +177,41 @@ NEXT_PUBLIC_API_URL=http://localhost:5000
 LLM_SERVER_URL=http://localhost:5000
 ```
 
+## 💾 Conversation Memory
+
+Clara maintains conversation context for **30 minutes** per chat session:
+
+- **Thread ID**: Each conversation gets a unique UUID
+- **Server-side Cache**: Uses node-cache to store message history in backend memory
+- **Auto-expiry**: Threads automatically expire after 30 minutes of inactivity
+- **Context-aware Responses**: LLM uses full conversation history to maintain context
+- **Monitoring**: Visit `http://localhost:5000/api/cache-stats` to view active threads
+
+### How Memory Works
+
+1. Frontend generates a unique thread ID (UUID) on page load
+2. Each message includes this thread ID
+3. Backend stores all messages (user + assistant) in the thread
+4. LLM receives full conversation history for context
+5. Thread data persists in memory for 30 minutes
+6. After 30 minutes of inactivity, the thread is automatically cleaned up
+
 ## 🤖 How It Works
 
-1. **User sends message** → Frontend UI
-2. **Frontend calls API** → `/api/chat` (Next.js proxy)
+1. **User sends message** → Frontend UI (with thread ID)
+2. **Frontend calls API** → `/api/chat` with prompt and threadId (Next.js proxy)
 3. **Next.js proxies request** → Backend `/api/chat`
-4. **Backend processes with LLM**:
-   - Sends prompt to Groq
+4. **Backend retrieves thread context**:
+   - Looks up threadId in cache
+   - Gets all previous messages in the conversation
+5. **Backend processes with LLM**:
+   - Sends full message history to Groq for context
    - If model requests web search, executes Tavily search
    - Sends search result back to model
    - Repeats up to 5 times or until model responds
-5. **Response returned** to frontend and displayed
+6. **Cache updated**: Response is saved to thread cache
+7. **Response returned** to frontend and displayed
+8. **Thread persistence**: Thread remains active for 30 more minutes
 
 ## 📦 Scripts
 
