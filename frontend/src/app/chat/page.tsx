@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { v4 as uuidv4 } from "uuid";
 
 interface Message {
   role: "user" | "assistant";
@@ -12,6 +13,7 @@ export default function ChatPage() {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [isDark, setIsDark] = useState(true);
+  const [threadId, setThreadId] = useState<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -19,11 +21,16 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
+    // Initialize thread ID on component mount
+    setThreadId(uuidv4());
+  }, []);
+
+  useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   async function sendPrompt() {
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || !threadId) return;
 
     const userMessage = prompt;
     setPrompt("");
@@ -34,7 +41,10 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: userMessage }),
+        body: JSON.stringify({ 
+          prompt: userMessage,
+          threadId: threadId 
+        }),
       });
 
       const data = await res.json();
@@ -62,6 +72,14 @@ export default function ChatPage() {
       e.preventDefault();
       sendPrompt();
     }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      // Show brief feedback without alert
+    }).catch(() => {
+      console.error("Failed to copy");
+    });
   };
 
   return (
@@ -99,7 +117,7 @@ export default function ChatPage() {
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-2xl px-4 py-3 rounded-lg ${
+                className={`max-w-2xl px-4 py-3 rounded-lg group relative ${
                   msg.role === "user"
                     ? "bg-blue-600 text-white rounded-br-none"
                     : isDark
@@ -108,6 +126,21 @@ export default function ChatPage() {
                 }`}
               >
                 <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                
+                {/* Copy button for assistant messages */}
+                {msg.role === "assistant" && (
+                  <button
+                    onClick={() => copyToClipboard(msg.content)}
+                    className={`absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-all duration-200 p-1.5 rounded-md text-xs ${
+                      isDark
+                        ? "bg-gray-600 hover:bg-gray-500 text-gray-300 hover:text-white"
+                        : "bg-gray-300 hover:bg-gray-400 text-gray-700 hover:text-gray-900"
+                    }`}
+                    title="Copy message"
+                  >
+                    📋
+                  </button>
+                )}
               </div>
             </div>
           ))}

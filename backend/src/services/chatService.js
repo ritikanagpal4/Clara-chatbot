@@ -1,20 +1,21 @@
 import getGroqClient from './groqService.js';
 import { performWebSearch } from './searchService.js';
+import { getThreadMessages, addMessageToThread } from './cacheService.js';
 import config from '../config/index.js';
 
 const client = getGroqClient();
 
-export async function chat(prompt) {
-    const messages = [
-        {
-            role: "system",
-            content: "You are Clara, a helpful smart assistant. When users ask about recent events, current information, or real-time data, use the webSearch tool to find the latest information. Always provide accurate and helpful responses.",
-        },
-        {
-            role: "user",
-            content: prompt,
-        },
-    ];
+export async function chat(prompt, threadId) {
+    // Get messages from thread context (includes system message and previous messages)
+    const messages = getThreadMessages(threadId);
+    
+    // Add the current user message
+    const userMessage = {
+        role: "user",
+        content: prompt,
+    };
+    messages.push(userMessage);
+    addMessageToThread(threadId, userMessage);
 
     let finalResponse = "";
     let iterationCount = 0;
@@ -97,6 +98,13 @@ export async function chat(prompt) {
     if (iterationCount >= config.maxIterations) {
         throw new Error(`Max iterations (${config.maxIterations}) reached`);
     }
+
+    // Add assistant response to thread context
+    const assistantMessage = {
+        role: "assistant",
+        content: finalResponse,
+    };
+    addMessageToThread(threadId, assistantMessage);
 
     return finalResponse;
 }

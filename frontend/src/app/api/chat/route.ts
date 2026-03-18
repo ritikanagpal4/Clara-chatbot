@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
     try {
-        const { prompt } = await req.json();
+        const { prompt, threadId } = await req.json();
 
         if (!prompt || !prompt.trim()) {
             return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
         const response = await fetch(`${llmServerUrl}/api/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt }),
+            body: JSON.stringify({ prompt, threadId }),
         });
 
         if (!response.ok) {
